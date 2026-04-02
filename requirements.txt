@@ -1,0 +1,16 @@
+# This project uses third-party libraries under their respective licenses.
+
+# Discord Bot
+discord.py
+# (Optional) token saving
+python-dotenv
+
+# Google Firestore
+google-cloud-firestore
+
+# OCR
+Pillow
+openai
+
+# JSON
+requests

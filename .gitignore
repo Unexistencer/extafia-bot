@@ -1,0 +1,22 @@
+# Docker relative
+*.tar
+*.img
+docker-compose.override.yml
+.dockerignore
+.env
+__pycache__/
+*.pyc
+*.pyo
+
+# VS Code config
+.vscode/
+
+# Python myenv
+myenv/
+*.myenv
+Pipfile
+Pipfile.lock
+
+# log
+logs/
+*.log

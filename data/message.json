@@ -1,0 +1,380 @@
+{
+	"zh": {
+		"sys": {
+			"help_title": "指令一覽",
+			"help_desc": "目前可以使用的指令如下：",
+			"help_section": {
+				"available": "可使用",
+				"maintenance": "維護中",
+				"wip": "暫不公佈",
+				"unavailable": "暫停服務"
+			},
+			"reboot": "陣間番黎！",
+			"no_permission": "？",
+			"not_found": "找不到指定的用戶。",
+			"mode_normal": "現在切換到 **NORMAL 模式**！",
+			"mode_dev": "現在切換到 **DEV 模式**！",
+			"mode_invalid": "模式錯誤。請使用 `normal` 或 `dev`。"
+		},
+		"lang": {
+			"current": "比你逼緊我用中文",
+			"invalid": "未學呀，用住呢啲先\n<:hand_l2:971325453879115797>`zh` (繁體中文), `en` (English), `jp` (日本語)<:hand_r2:971325523471003668>",
+			"updated": "轉左做中文了。"
+		},
+		"status": {
+			"title": "{name}的個人資訊",
+			"currency": "所持成Coin",
+			"arena": "Cock Arena情報",
+			"data_seasonal": "本季戰績",
+			"data_total": "總戰績",
+			"participation": "參戰次數：{value}",
+			"win": "勝利次數：{value}",
+			"longest": "最長記錄：{value}",
+			"8D": "8D次數：{value}",
+			"enchantment": "所持附魔",
+			"achievement": "成就"
+		},
+		"announce": {
+			"success": "已設為公告頻道",
+			"not_admin": "<:yutafo:959034395413602354>",
+			"already_set": "已設為公告頻道"
+		},
+		"arena": {
+			"host": {
+				"title": "{user}發起了Cock Arena!!",
+				"description": "本次賭注為 {amount}\n參賽報名請於20秒內點擊下方的✅"
+			},
+			"failed": {
+				"title": "你太大了...",
+				"description": "沒有人想與你硬碰。\n下次記得叫齊人！"
+			},
+			"battle_log": {
+				"prefix": "前綴",
+				"suffix": "後綴",
+				"debuff": "弱體",
+				"bonus": "報酬",
+				"title": "{name}的戰鬥記錄",
+				"shape": "最終長度: {len}",
+				"plus": "長度增加{val}！",
+				"multiply": "長度乘以{val}倍！",
+				"minus_to": "令{user}減少了{val}！",
+				"minus_from": "被{user}減少了{val}！",
+				"superior_success": "入舖頭買咗碌靚鳩！",
+				"superior_failed": "入舖頭想買靚鳩可惜搵唔到。",
+				"fear_to_success": "嚇到{user}縮咗一下！",
+				"fear_to_failed": "想嚇{user}但唔成功。",
+				"fear_from": "俾{user}嚇到縮咗一下！",
+				"mirrored_success": "照照吓鏡碌鳩變咗形！",
+				"mirrored_failed": "碌鳩照極都係咁嘅樣。",
+				"Financial": "賽後額外獲得 {value}% 成Coin！",
+				"Meisterdieb": "同{name}換咗碌鳩！",
+				"Torsion_to": "扭轉了{name}的睪丸！",
+				"Torsion_from": "俾{name}扭轉了睪丸！",
+				"Torsion_self": "你扭轉了自己的睪丸。",
+				"Scavenger": "賽後只損失 {value}% 成Coin。"
+			},
+			"result": "**Arena結果**",
+			"win": "\n{user}在競技場勝利了，獲得 {amount}！",
+			"lose": "\n{user}輸掉了這場競技，損失 {amount}。"
+		},
+		"choose": {
+			"title": {
+				"success": "「{result}」",
+				"failed": "點揀呀"
+			},
+			"description": {
+				"success": "嗱幫你揀咗喇，唔好反口呀。",
+				"failed": "下次比夠2個以上選擇我先好叫我揀",
+				"critical": "講吓姐，嗱幫你揀咗喇。"
+			},
+			"ui": {
+				"options": "選項",
+				"result": "結果",
+				"forbidden": "403 Forbidden: 你冇權限操作呢個頁面。",
+				"error_title": "Choose",
+				"options_truncated": "…太長，後面省略。"
+			},
+			"error": {
+				"not_image": "我要圖呀，你比啲咩我呀",
+				"image_too_large": "換番張細啲嘅圖再試過({max_mb}MB)",
+				"image_read_failed": "你張圖讀唔到呀",
+				"ocr_failed": "大佬你張圖144p要我睇乜春呀"
+			}
+		},
+		"enchant":{
+			"title": {
+				"success": "附魔完畢",
+				"not_enough_money": "冇錢學咩人玩附魔"
+			},
+			"description": {
+				"success": "**成coin結餘：**{current}\n\n你碌鳩而家咁嘅樣：\n",
+				"not_enough_money": "有{amount}再搵我啦\n成coin結餘：{current}"
+			}
+		},
+		"vaal": {
+			"title": {
+				"success": "腐化完畢",
+				"not_enough_money": "吓，冇錢學人vaal野",
+				"already": "腐咗喇喎"
+			},
+			"description": {
+				"success": "**成coin結餘：**{current}\n\n你碌鳩而家咁嘅樣：\n",
+				"not_enough_money": "有{amount}再搵我啦\n成coin結餘：{current}",
+				"already": "你就想呀vaal完又vaal，洗過啦。"
+			}
+		}
+	},
+
+	"en": {
+		"sys": {
+			"help_title": "Commands Overview",
+			"help_desc": "Commands:",
+			"help_section": {
+				"available": "Available",
+				"maintenance": "In Maintenance",
+				"wip": "Work in Progress",
+				"unavailable": "Unavailable"
+			},
+			"reboot": "Rebooting...",
+			"no_permission": "No permission.",
+			"not_found": "Specified user not found.",
+			"mode_normal": "Switched to **NORMAL Mode**!",
+			"mode_dev": "Switched to **DEV Mode**!",
+			"mode_invalid": "Invalid mode. Please use `normal` or `dev`."
+		},
+		"lang": {
+			"current": "This this this this this!",
+			"invalid": "Supported languages:\n<:hand_l2:971325453879115797>`zh` (繁體中文), `en` (English), `jp` (日本語)<:hand_r2:971325523471003668>",
+			"updated": "I go to school by bus."
+		},
+		"status": {
+			"title": "{name}'s status",
+			"currency": "Currency",
+			"arena": "Cock Arena data",
+			"data_seasonal": "Seasonal",
+			"data_total": "Total",
+			"participation": "Participation: {value}",
+			"win": "Win: {value}",
+			"longest": "Cock Record: {value}",
+			"8D": "8D count: {value}",
+			"enchantment": "Enchantment",
+			"achievement": "Achievement"
+		},
+		"announce": {
+			"success": "Announcement channel set.",
+			"not_admin": "<:yutafo:959034395413602354>",
+			"already_set": "Announcement channel set."
+		},
+		"arena": {
+			"host": {
+				"title": "{user} hosts Cock Arena!!",
+				"description": "Bet Amount: {amount}\nPress ✅ in 20 secs to join arena!"
+			},
+			"failed": {
+				"title": "Hang on, let me grab my magnifier...",
+				"description": "Nobody even saw that tiny thing, Dude.\nBring some company next time!"
+			},
+			"battle_log": {
+				"prefix": "Prefix",
+				"suffix": "Suffix",
+				"debuff": "Debuff",
+				"bonus": "Awards",
+				"title": "{name}'s battle log",
+				"shape": "Final Length: {len}",
+				"plus": "incaresed by {val}!",
+				"multiply": "multiplied by {val}!",
+				"minus_to": "Reduced {user} by {val}!",
+				"minus_from": "{user} reduced you length by {val}!",
+				"superior_success": "Bought a nice cock!",
+				"superior_failed": "Tried to find a nice cock but didn’t buy anything.",
+				"fear_to_success": "嚇到{user}縮咗一下！",
+				"fear_to_failed": "想嚇{user}但唔成功。",
+				"fear_from": "俾{user}嚇到縮咗一下！",
+				"mirrored_success": "照照吓鏡碌鳩變咗形！",
+				"mirrored_failed": "碌鳩照極都係咁嘅樣。",
+				"Financial": "賽後額外獲得 {value}% 成Coin！",
+				"Meisterdieb": "同{name}換咗碌鳩！",
+				"Torsion_to": "扭轉了{name}的睪丸！",
+				"Torsion_from": "俾{name}扭轉了睪丸！",
+				"Torsion_self": "你扭轉了自己的睪丸。",
+				"Scavenger": "賽後只損失 {value}% 成Coin。"
+			},
+			"result": "**Arena Result**",
+			"win": "\n{user} got victory and {amount}!",
+			"lose": "\n{user} lost the arena and {amount}."
+		},
+		"choose": {
+			"title": {
+				"success": "「{result}」",
+				"failed": "I'm really sorry to tell you..."
+			},
+			"description": {
+				"success": "Chosen by: Cloo, the Legacy of Lie Lai",
+				"failed": "At least two options are required.",
+				"critical": "Just a joke, here's the selection!"
+			},
+			"ui": {
+				"options": "Options",
+				"result": "Result",
+				"forbidden": "403 Forbidden: You don't have permission to operate this page.",
+				"error_title": "Choose",
+				"options_truncated": "...and etc."
+			},
+			"error": {
+				"not_image": "Please upload an image file.",
+				"image_too_large": "Please upload a smaller image and try again ({max_mb}MB max).",
+				"image_read_failed": "Failed to read your image.",
+				"ocr_failed": "I can't read options from this image."
+			}
+		},
+		"enchant":{
+			"title": {
+				"success": "Enchant success.",
+				"not_enough_money": "You can't afford that, dude."
+			},
+			"description": {
+				"success": "**Your sing coin balance:** {current}\n\nYour cock received the following enchantments:\n",
+				"not_enough_money": "Enchant cost: {amount}\nYour sing coin balance: {current}"
+			}
+		},
+		"vaal": {
+			"title": {
+				"success": "Enchantments have been corrupted.",
+				"not_enough_money": "You can't afford that, dude.",
+				"already": "You can't afford that, dude."
+			},
+			"description": {
+				"success": "**Your sing coin balance:** {current}\n\nYour cock received the following enchantments:\n",
+				"not_enough_money": "Vaal cost: {amount}\nYour sing coin balance: {current}",
+				"already": "You can't corrupted twice. Get new enchantments first."
+			}
+		}
+	},
+
+	"jp": {
+		"sys": {
+			"help_title": "コマンド一覧",
+			"help_desc": "現在使用可能なコマンドは以下の通りです：",
+			"help_section": {
+				"available": "使用可能",
+				"maintenance": "メンテナンス中",
+				"wip": "開発中",
+				"unavailable": "使用不可"
+			},
+			"reboot": "ボットを再起動しています...",
+			"no_permission": "この操作を行う権限がありません。",
+			"not_found": "指定されたユーザーが見つかりませんでした。",
+			"mode_normal": "**NORMALモード** に切り替えました！",
+			"mode_dev": "**DEVモード** に切り替えました！",
+			"mode_invalid": "無効なモード。`normal` または `dev` を使用してください。"
+		},
+		"lang": {
+			"current": "ニホンゴワカリマセン",
+			"invalid": "どうやらまだ習得してない言語みたいだな。こっちから選びな。\n<:hand_l2:971325453879115797>`zh` (繁體中文), `en` (English), `jp` (日本語)<:hand_r2:971325523471003668>",
+			"updated": "日本語に変わったぜ！"
+		},
+		"status": {
+			"title": "{name}の個人情報",
+			"currency": "所持成コイン",
+			"arena": "Cock Arena情報",
+			"data_seasonal": "今シーズン戦績",
+			"data_total": "総合戦績",
+			"participation": "戦闘回数：{value}",
+			"win": "勝ち回数：{value}",
+			"longest": "最長記録：{value}",
+			"8D": "8D回数：{value}",
+			"enchantment": "所持エンチャント",
+			"achievement": "実績"
+		},
+		"announce": {
+			"success": "アナウンスチャンネル設定成功しました",
+			"not_admin": "<:yutafo:959034395413602354>",
+			"already_set": "すでにこのチャンネルと設定してたんだけど、どうしてもならもう一回設定してあげるわ"
+		},
+		"arena": {
+			"host": {
+				"title": "{user} がCockArenaを立ち上げた!!",
+				"description": "賭け金：{amount}\n参加者は20秒以内下の ✅ を押してください！"
+			},
+			"failed": {
+				"title": "デカ過ぎて誰も相手にしてくれないじゃん",
+				"description": "集まってからやろう！"
+			},
+			"battle_log": {
+				"prefix": "前綴",
+				"suffix": "後綴",
+				"debuff": "弱體",
+				"bonus": "報酬",
+				"title": "{name}的戰鬥記錄",
+				"shape": "最終長度: {len}",
+				"plus": "長度增加{val}！",
+				"multiply": "長度乘以{val}倍！",
+				"minus_to": "令{user}減少了{val}！",
+				"minus_from": "被{user}減少了{val}！",
+				"superior_success": "入舖頭買咗碌靚鳩！",
+				"superior_failed": "入舖頭想買靚鳩可惜搵唔到。",
+				"fear_to_success": "嚇到{user}縮咗一下！",
+				"fear_to_failed": "想嚇{user}但唔成功。",
+				"fear_from": "俾{user}嚇到縮咗一下！",
+				"mirrored_success": "照照吓鏡碌鳩變咗形！",
+				"mirrored_failed": "碌鳩照極都係咁嘅樣。",
+				"Financial": "賽後額外獲得 {value}% 成Coin！",
+				"Meisterdieb": "同{name}換咗碌鳩！",
+				"Torsion_to": "扭轉了{name}的睪丸！",
+				"Torsion_from": "俾{name}扭轉了睪丸！",
+				"Torsion_self": "你扭轉了自己的睪丸。",
+				"Scavenger": "賽後只損失 {value}% 成Coin。"
+			},
+			"result": "**Arena結果**",
+			"win": "\n{user}の勝ち！{amount}を獲得した！",
+			"lose": "\n{user}が負け、{amount}を失った。"
+		},
+		"choose": {
+			"title": {
+				"success": "「{result}」",
+				"failed": "厳正なる抽選の結果、残念ながら..."
+			},
+			"description": {
+				"success": "我が魂の導くままに、選定せし運命…ここに刻まれたり！",
+				"failed": "まず選択を２個以上用意してください。",
+				"critical": "という冗談でした。本当の答えはこちら。"
+			},
+			"ui": {
+				"options": "選択肢",
+				"result": "結果",
+				"forbidden": "403 Forbidden: このページを操作する権限がありません。",
+				"error_title": "Choose",
+				"options_truncated": "…長すぎるため後半は省略しました。"
+			},
+			"error": {
+				"not_image": "画像ファイルをアップロードしてください。",
+				"image_too_large": "もっと小さい画像で試してください（{max_mb}MBまで）。",
+				"image_read_failed": "画像を読み取れませんでした。",
+				"ocr_failed": "この画像から選択肢を読み取れませんでした。"
+			}
+		},
+		"enchant":{
+			"title": {
+				"success": "エンチャント成功",
+				"not_enough_money": "金をちゃんと持ってきな"
+			},
+			"description": {
+				"success": "**所持成コイン：**{current}\n\nあなたのコックの新たな姿：\n\n",
+				"not_enough_money": "エンチャント費用：{amount}\n所持成コイン：{current}"
+			}
+		},
+		"vaal": {
+			"title": {
+				"success": "腐敗完了",
+				"not_enough_money": "まずは金だ",
+				"already": "もう腐敗してるよ"
+			},
+			"description": {
+				"success": "**所持成コイン：**{current}\n\nあなたのコックの新たな姿：\n\n",
+				"not_enough_money": "腐敗費用：{amount}\n所持成コイン：{current}",
+				"already": "新しいエンチャントをしてからやりな。"
+			}
+		}
+	}
+  }
+  
