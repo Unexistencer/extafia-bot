@@ -1,19 +1,28 @@
-import sqlite3
-# from tabulate import tabulate  # format output
+from google.cloud import firestore
 
-DB_PATH = "data/vc_data.db"
+db = firestore.Client()
+
+
+def _fetch_vc_logs(guild_id, *, user_id=None):
+    query = db.collection("vc_logs").where("guild_id", "==", guild_id)
+    if user_id is not None:
+        query = query.where("user_id", "==", user_id)
+
+    return [doc.to_dict() or {} for doc in query.stream()]
 
 def get_vc_stats(user_id, guild_id):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''SELECT COUNT(*), AVG(duration), MAX(duration), MIN(duration) 
-                 FROM vc_log WHERE user_id = ? AND guild_id = ?''', 
-              (user_id, guild_id))
-    result = c.fetchone()
-    conn.close()
+    rows = _fetch_vc_logs(guild_id, user_id=user_id)
+    durations = [
+        float(row.get("duration", 0))
+        for row in rows
+        if row.get("duration") is not None
+    ]
 
-    if result and result[0] > 0:
-        count, avg_duration, max_duration, min_duration = result
+    if durations:
+        count = len(durations)
+        avg_duration = sum(durations) / count
+        max_duration = max(durations)
+        min_duration = min(durations)
         return {
             "sessions": count,
             "average_time": round(avg_duration, 2),
@@ -24,25 +33,27 @@ def get_vc_stats(user_id, guild_id):
         return None  # no any vc log
 
 def get_top_active_users(guild_id, limit=5):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''SELECT user_id, SUM(duration) as total_time
-                 FROM vc_log WHERE guild_id = ?
-                 GROUP BY user_id ORDER BY total_time DESC LIMIT ?''', 
-              (guild_id, limit))
-    result = c.fetchall()
-    conn.close()
-    
+    rows = _fetch_vc_logs(guild_id)
+    totals = {}
+    for row in rows:
+        user_id = row.get("user_id")
+        duration = row.get("duration")
+        if user_id is None or duration is None:
+            continue
+        totals[user_id] = totals.get(user_id, 0.0) + float(duration)
+
+    result = sorted(totals.items(), key=lambda item: item[1], reverse=True)[:limit]
     return result if result else None
 
 def get_most_active_channels(guild_id, limit=3):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''SELECT channel_id, SUM(duration) as total_time
-                 FROM vc_log WHERE guild_id = ?
-                 GROUP BY channel_id ORDER BY total_time DESC LIMIT ?''', 
-              (guild_id, limit))
-    result = c.fetchall()
-    conn.close()
-    
+    rows = _fetch_vc_logs(guild_id)
+    totals = {}
+    for row in rows:
+        channel_id = row.get("channel_id")
+        duration = row.get("duration")
+        if channel_id is None or duration is None:
+            continue
+        totals[channel_id] = totals.get(channel_id, 0.0) + float(duration)
+
+    result = sorted(totals.items(), key=lambda item: item[1], reverse=True)[:limit]
     return result if result else None

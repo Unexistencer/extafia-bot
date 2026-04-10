@@ -2,7 +2,7 @@ from google.cloud import firestore
 import time
 import os
 
-db = firestore.Client(project=os.environ["GOOGLE_CLOUD_PROJECT"])
+db = firestore.Client()
 join_vc_dict = {}  # {user_id: JoinVC}
 
 class JoinVC:

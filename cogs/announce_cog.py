@@ -231,8 +231,8 @@ class AnnounceCog(commands.GroupCog, name="announce"):
             ch = guild.get_channel(announce_channel_id)
             if not isinstance(ch, discord.TextChannel):
                 return
-
-            msg = f"{member.display_name} 偷聽完又走"
+            
+            msg = f"<@{member.id}> 入 <#{channel.id}> 偷聽完又走"
             await ch.send(msg)
 
 

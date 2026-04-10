@@ -7,6 +7,33 @@ db = firestore.Client()
 
 GUILD_CACHE: Dict[int, Dict[str, Any]] = {}
 
+DEFAULT_GUILD_DATA: Dict[str, Any] = {
+    "announce_channel_id": None,
+    "announce_excluded_voice_channels": [],
+}
+
+
+def normalize_guild_data(data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    raw = dict(data or {})
+
+    announce_channel_id = raw.get("announce_channel_id")
+    if announce_channel_id is None:
+        announce_channel_id = raw.get("channel_id")
+
+    excluded_voice_channels = raw.get("announce_excluded_voice_channels")
+    if excluded_voice_channels is None:
+        excluded_voice_channels = raw.get("excluded_voice_channels")
+    if excluded_voice_channels is None:
+        excluded_voice_channels = raw.get("private_voice_channels")
+    if excluded_voice_channels is None:
+        excluded_voice_channels = []
+
+    return {
+        **raw,
+        "announce_channel_id": announce_channel_id,
+        "announce_excluded_voice_channels": list(excluded_voice_channels),
+    }
+
 
 def get_guild_ref(guild_id: int):
     return db.collection("guilds").document(str(guild_id))
@@ -20,16 +47,12 @@ async def get_guild_data(guild_id: int) -> Dict[str, Any]:
     doc = await asyncio.to_thread(ref.get)
 
     if doc.exists:
-        data = doc.to_dict() or {}
+        data = normalize_guild_data(doc.to_dict())
     else:
-        data = {
-            "announce_channel_id": None,
-            "announce_excluded_voice_channels": [],
-        }
+        data = dict(DEFAULT_GUILD_DATA)
         await asyncio.to_thread(ref.set, data)
 
-    data.setdefault("announce_channel_id", None)
-    data.setdefault("announce_excluded_voice_channels", [])
+    data = normalize_guild_data(data)
 
     GUILD_CACHE[guild_id] = data
     return data
@@ -37,13 +60,14 @@ async def get_guild_data(guild_id: int) -> Dict[str, Any]:
 
 async def update_guild_data(guild_id: int, data: Dict[str, Any]) -> None:
     ref = get_guild_ref(guild_id)
-    await asyncio.to_thread(ref.set, data, True)  # merge=True
+    normalized = normalize_guild_data(data)
+    await asyncio.to_thread(ref.set, normalized, True)  # merge=True
 
     if guild_id in GUILD_CACHE:
-        GUILD_CACHE[guild_id].update(data)
+        GUILD_CACHE[guild_id].update(normalized)
     else:
         current = await get_guild_data(guild_id)
-        current.update(data)
+        current.update(normalized)
         GUILD_CACHE[guild_id] = current
 
 

@@ -3,7 +3,6 @@ from discord.ext import commands
 import discord
 import os
 import logging
-import vc_announce, vc_eavesdrop, vc_analysis
 
 from constants import PREFIX_WHITELIST
 from service.cache import EnchantCache
@@ -74,23 +73,6 @@ async def on_message(message: discord.Message):
             return
 
     await bot.process_commands(message)
-
-
-
-@bot.event
-async def on_voice_state_update(member, before, after):
-    """  WIP """
-    user_id = member.id
-    guild_id = member.guild.id
-    bef_channel = before.channel if before.channel else None
-    aft_channel = after.channel if after.channel else None
-
-    if vc_eavesdrop.vc_check(user_id, guild_id, bef_channel, aft_channel):
-        announce_channel_id = await vc_announce.get_announce_channel(guild_id)
-        if announce_channel_id:
-            channel = bot.get_channel(announce_channel_id)
-            if channel:
-                await channel.send(f"<@{member.id}> 入 <#{bef_channel.id}> 偷聽完又走")
 
 
 bot.run(TOKEN)
