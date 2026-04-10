@@ -3,9 +3,8 @@ set -euo pipefail
 IMG_NAME="extafia:latest"
 CTR_NAME="extafia"
 
-# Optional local ADC file. Override with:
-# ADC_PATH=/path/to/application_default_credentials.json ./docker_tools.sh
-ADC_PATH="${ADC_PATH:-$HOME/.config/gcloud/application_default_credentials.json}"
+# Optional local ADC file for non-GCE environments only
+ADC_PATH="${ADC_PATH:-}"
 
 menu() {
   echo "======================================"
@@ -55,14 +54,14 @@ update_extafia() {
   LOG_DIR="$HOME/extafia/logs"
   mkdir -p "${LOG_DIR}"
 
-  if [[ ! -f "${ADC_PATH}" ]]; then
-    echo "INFO: ADC file not found at: ${ADC_PATH}"
-    echo "      Continuing without mounting local credentials."
-    echo "      This is expected on Cloud Run / GCE when the runtime service account provides ADC."
-    ADC_MOUNT=""
-  else
-    ADC_MOUNT="-v ${ADC_PATH}:/secrets/adc.json:ro -e GOOGLE_APPLICATION_CREDENTIALS=/secrets/adc.json"
-  fi
+
+  if [[ -z "${ADC_PATH}" || ! -f "${ADC_PATH}" ]]; then
+  echo "INFO: No local ADC file mounted."
+  echo "      Container will rely on runtime default credentials (e.g. GCE service account)."
+  ADC_MOUNT=""
+else
+  ADC_MOUNT="-v ${ADC_PATH}:/secrets/adc.json:ro -e GOOGLE_APPLICATION_CREDENTIALS=/secrets/adc.json"
+fi
 
   docker run -d \
     --name "${CTR_NAME}" \
