@@ -3,6 +3,7 @@ from __future__ import annotations
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands, Interaction
+
 from service.enchant_service import EnchantService, EnchantPayload
 
 from logger import logger, generate_task_num
@@ -34,21 +35,37 @@ class EnchantCog(commands.Cog):
         ]
     )
     async def enchant(self, interaction: Interaction, action: app_commands.Choice[str] | None = None):
-        task_num = generate_task_num()
-        logger.info(
-            f"[{task_num}]enchant invoked by {interaction.user} #{interaction.user.id} "
-            f"in guild {interaction.guild} #{interaction.guild.id}"
-            )
         await interaction.response.defer(ephemeral=True)
-        guild_id = interaction.guild.id if interaction.guild else 0
-        user_id = interaction.user.id
-        try:
-            act = action.value
-        except:
-            act = "roll"
+        await self._run_enchant(
+            task_num=generate_task_num(),
+            guild_id=interaction.guild.id if interaction.guild else 0,
+            user_id=interaction.user.id,
+            actor=str(interaction.user),
+            guild=str(interaction.guild),
+            action_value=action.value if action else "roll",
+            send_result=lambda embed, view: interaction.edit_original_response(embed=embed, view=view),
+        )
 
-        
-        if act == "show":
+    @commands.command(name="enchant")
+    async def enchant_prefix(self, ctx: commands.Context, action: str | None = None):
+        async with ctx.typing():
+            await self._run_enchant(
+                task_num=generate_task_num(),
+                guild_id=ctx.guild.id if ctx.guild else 0,
+                user_id=ctx.author.id,
+                actor=str(ctx.author),
+                guild=str(ctx.guild),
+                action_value=(action or "roll").lower(),
+                send_result=lambda embed, view: ctx.send(embed=embed, view=view),
+            )
+
+    async def _run_enchant(self, task_num: str, guild_id: int, user_id: int, actor: str, guild: str, action_value: str, send_result):
+        logger.info(
+            f"[{task_num}]enchant invoked by {actor} #{user_id} "
+            f"in guild {guild} #{guild_id}"
+        )
+
+        if action_value == "show":
             logger.info(f"[{task_num}]Show enchantments status.")
             payload = await self.svc.show_status(task_num, guild_id, user_id)
         else:
@@ -56,24 +73,24 @@ class EnchantCog(commands.Cog):
             payload = await self.svc.roll(task_num, guild_id, user_id)
 
         embed = self._to_embed(payload)
-        view  = EnchantView(self.svc, guild_id, user_id, self._to_embed)
+        view = EnchantView(self.svc, guild_id, user_id, self._to_embed)
         logger.info(f"[{task_num}]Embed done.")
-        await interaction.edit_original_response(embed=embed, view=view)
+        await send_result(embed, view)
 
     def _to_embed(self, p: EnchantPayload) -> discord.Embed:
         color = p.color_hint if p.color_hint is not None else discord.Color.greyple().value
         return discord.Embed(title=p.title, description=p.description, color=color)
 
+
 class EnchantView(discord.ui.View):
     def __init__(self, svc: EnchantService, guild_id: int, user_id: int, render):
-        super().__init__(timeout=180)   # wait-time
+        super().__init__(timeout=180)
         self.svc = svc
         self.guild_id = guild_id
         self.user_id = user_id
         self.render = render
 
     async def on_timeout(self):
-        # flush user if View disable
         await self.svc.flush_user(self.guild_id, self.user_id)
 
     async def _guard_user(self, interaction: Interaction) -> bool:
@@ -88,7 +105,7 @@ class EnchantView(discord.ui.View):
         logger.info(
             f"[{task_num}]enchant->enchant invoked by {interaction.user} #{interaction.user.id} "
             f"in guild {interaction.guild} #{interaction.guild.id}"
-            )
+        )
         if not await self._guard_user(interaction):
             return
         await interaction.response.defer(ephemeral=True)
@@ -101,7 +118,7 @@ class EnchantView(discord.ui.View):
         await interaction.followup.edit_message(
             message_id=interaction.message.id,
             embed=embed,
-            view=self
+            view=self,
         )
 
     @discord.ui.button(emoji="<:shingcoin_1:952960803663937577>", label="x1 Vaal", style=discord.ButtonStyle.danger, custom_id="enchant_vaal")
@@ -110,7 +127,7 @@ class EnchantView(discord.ui.View):
         logger.info(
             f"[{task_num}]enchant->vaal invoked by {interaction.user} #{interaction.user.id} "
             f"in guild {interaction.guild} #{interaction.guild.id}"
-            )
+        )
         if not await self._guard_user(interaction):
             return
         await interaction.response.defer(ephemeral=True)
@@ -123,14 +140,16 @@ class EnchantView(discord.ui.View):
         await interaction.followup.edit_message(
             message_id=interaction.message.id,
             embed=embed,
-            view=None
+            view=None,
         )
+
 
 async def setup(bot: commands.Bot):
     svc = getattr(bot, "enchant_service", None)
     if svc is None:
         from service.cache import EnchantCache
         from service.enchant_service import EnchantService
+
         cache = EnchantCache(ttl_sec=30)
         svc = EnchantService(cache)
     await bot.add_cog(EnchantCog(bot, svc))

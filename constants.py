@@ -2,8 +2,15 @@ from enum import Enum
 from dataclasses import dataclass
 
 PREFIX_WHITELIST = {
+    "h",
+    "lang",
+    "stat",
     "choose",
     "vhs",
+    "enchant",
+    "vaal",
+    "arena",
+    "announce",
 }
 
 class Language(Enum):
