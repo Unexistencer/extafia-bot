@@ -17,6 +17,7 @@ TEST_GUILD_ID = 917151296287571988 # yep my lab
 class MyBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
+        intents.members = True
         intents.message_content = True
         super().__init__(command_prefix=commands.when_mentioned_or("."), intents=intents)
 
