@@ -2,7 +2,7 @@
 	"zh": {
 		"sys": {
 			"help_title": "指令一覽",
-			"help_desc": "目前可以使用的指令如下：",
+			"help_desc": "可用「/」或「.」執行指令。",
 			"help_section": {
 				"available": "可使用",
 				"maintenance": "維護中",
@@ -128,7 +128,7 @@
 	"en": {
 		"sys": {
 			"help_title": "Commands Overview",
-			"help_desc": "Commands:",
+			"help_desc": "You can call commands with / or .",
 			"help_section": {
 				"available": "Available",
 				"maintenance": "In Maintenance",
@@ -254,7 +254,7 @@
 	"jp": {
 		"sys": {
 			"help_title": "コマンド一覧",
-			"help_desc": "現在使用可能なコマンドは以下の通りです：",
+			"help_desc": "「/」または「.」でコマンドを呼び出せるぜ。",
 			"help_section": {
 				"available": "使用可能",
 				"maintenance": "メンテナンス中",

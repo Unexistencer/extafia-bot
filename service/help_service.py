@@ -9,7 +9,7 @@ class HelpService:
 
         embed = discord.Embed(
             title=await resolver.get(Command.SYS.command_name, "help_title"),
-            description="",
+            description=await resolver.get(Command.SYS.command_name, "help_desc"),
             color=discord.Color.blue(),
         )
 
@@ -24,7 +24,7 @@ class HelpService:
         for command in Command:
             if command.status == CommandStatus.HIDDEN:
                 continue
-            categories[command.status].append("・" + f"/{command.command_name}")
+            categories[command.status].append("・" + f"{command.command_name}")
 
         for status, cmds in categories.items():
             if not cmds:
