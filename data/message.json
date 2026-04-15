@@ -68,9 +68,9 @@
 				"mirrored_failed": "碌鳩照極都係咁嘅樣。",
 				"Financial": "賽後額外獲得 {value}% 成Coin！",
 				"Meisterdieb": "同{name}換咗碌鳩！",
-				"Torsion_to": "扭轉了{name}的睪丸！",
-				"Torsion_from": "俾{name}扭轉了睪丸！",
-				"Torsion_self": "你扭轉了自己的睪丸。",
+				"Torsion_to": "扭轉了{name}粒睪丸！",
+				"Torsion_from": "俾{name}扭轉咗睪丸！",
+				"Torsion_self": "你扭轉咗自己粒蛋。",
 				"Scavenger": "賽後只損失 {value}% 成Coin。"
 			},
 			"result": "**Arena結果**",
