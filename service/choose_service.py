@@ -13,8 +13,7 @@ async def choose(task_num: str, guild_id: int, user_id: int, items: list[str]):
         description = await resolver.get(Category.CHOOSE, SubCategory.DESCRIPTION, "failed")
         return discord.Embed(title=title, description=description, color=discord.Color.red())
 
-    num = random.randint(0, len(items) - 1)
-    result = str(items[num])
+    result = str(random.choice(items))
 
     if len(result) > 1 and not random.randint(0, 99):
         logger.info(f"[{task_num}]Critical Hit!!")
@@ -55,8 +54,7 @@ async def choose_with_result_list(task_num: str, guild_id: int, user_id: int, it
         description = await resolver.get(Category.CHOOSE, SubCategory.DESCRIPTION, "failed")
         return {"ok": False, "title": title, "description": description}
 
-    num = random.randint(0, len(items) - 1)
-    result = str(items[num])
+    result = str(random.choice(items))
 
     # critical
     if len(result) > 1 and random.randint(1, 100) == 100:

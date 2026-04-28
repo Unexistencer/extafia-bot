@@ -1,6 +1,5 @@
 from __future__ import annotations
 import asyncio
-import hashlib
 from urllib.parse import urlparse
 from typing import Optional, List
 
@@ -15,9 +14,6 @@ from msg_utils import MessageResolver
 MAX_IMAGE_MB = 5
 MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024
 MAX_DESC = 3900
-
-_OCR_CACHE: dict[str, list[str]] = {}
-
 
 class ChooseInputError(Exception):
     """Use-case input error"""
@@ -69,10 +65,6 @@ def parse_text_options(options: Optional[str]) -> List[str]:
     return _dedupe_keep_order(parts)
 
 
-def _sha256(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
 async def _validate_image_attachment(att: discord.Attachment, guild_id: int, user_id: int) -> None:
     if not att.content_type or not att.content_type.startswith("image/"):
         raise ChooseInputError(await _choose_message(guild_id, user_id, "error", "not_image"))
@@ -117,24 +109,20 @@ async def ocr_items_from_attachment(att: discord.Attachment, guild_id: int, user
     except Exception:
         raise ChooseInputError(await _choose_message(guild_id, user_id, "error", "image_read_failed"))
 
-    h = _sha256(data)
-    cached = _OCR_CACHE.get(h)
-    if cached is not None:
-        logger.info(f"[choose-ocr] Cache hit for attachment '{att.filename}' -> {cached}")
-        return cached
-
     try:
-        items = await asyncio.to_thread(
-            service.ocr_service.extract_options_from_bytes,
+        result = await asyncio.to_thread(
+            service.ocr_service.extract_options_result_from_bytes,
             data,
             suffix=_suffix_from_filename(att.filename),
         )
     except Exception:
         raise ChooseInputError(await _choose_message(guild_id, user_id, "error", "ocr_failed"))
 
-    items = _dedupe_keep_order(items)
-    logger.info(f"[choose-ocr] Attachment '{att.filename}' deduped to {len(items)} options: {items}")
-    _OCR_CACHE[h] = items
+    items = _dedupe_keep_order(result.options)
+    logger.info(
+        f"[choose-ocr] Attachment '{att.filename}' options={len(items)} "
+        f"source={result.source} cache_hit={result.cache_hit} text_len={len(result.ocr_text)}"
+    )
     return items
 
 
@@ -163,24 +151,20 @@ async def ocr_items_from_image_url(url: str, guild_id: int, user_id: int) -> Lis
             await _choose_message(guild_id, user_id, "error", "image_too_large", max_mb=MAX_IMAGE_MB)
         )
 
-    h = _sha256(data)
-    cached = _OCR_CACHE.get(h)
-    if cached is not None:
-        logger.info(f"[choose-ocr] Cache hit for image url '{url}' -> {cached}")
-        return cached
-
     try:
-        items = await asyncio.to_thread(
-            service.ocr_service.extract_options_from_bytes,
+        result = await asyncio.to_thread(
+            service.ocr_service.extract_options_result_from_bytes,
             data,
             suffix=_suffix_from_url(url),
         )
     except Exception:
         raise ChooseInputError(await _choose_message(guild_id, user_id, "error", "ocr_failed"))
 
-    items = _dedupe_keep_order(items)
-    logger.info(f"[choose-ocr] Image url '{url}' deduped to {len(items)} options: {items}")
-    _OCR_CACHE[h] = items
+    items = _dedupe_keep_order(result.options)
+    logger.info(
+        f"[choose-ocr] Image url options={len(items)} "
+        f"source={result.source} cache_hit={result.cache_hit} text_len={len(result.ocr_text)}"
+    )
     return items
 
 
