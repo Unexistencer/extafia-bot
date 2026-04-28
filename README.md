@@ -63,10 +63,10 @@ Usage examples:
 ```
 
 Parameters:
-- `strength`: overall VHS effect strength, range `1-100`, default `30`
+- `strength`: overall VHS effect strength, range `1-100`, default `35`
 - `noise`: static/noise intensity, range `0-100`, default `50`
-- `scanline`: scanline intensity, range `0-1000`, default `300`
-- `rgb`: RGB channel shift intensity, range `0-200`, default `100`
+- `scanline`: scanline intensity, range `0-1000`, default `800`
+- `rgb`: RGB channel shift intensity, range `0-200`, default `120`
 - `noisebar`: optional tracking-noise bar effect for stronger glitch on the output
 - `lofi`: optional low-fidelity strength, range `1-100`, default `100`
 
