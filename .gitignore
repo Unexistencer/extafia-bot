@@ -20,3 +20,6 @@ Pipfile.lock
 # log
 logs/
 *.log
+
+# Codex Rules
+AGENTS.md

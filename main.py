@@ -62,8 +62,8 @@ async def on_ready():
 
 @bot.event
 async def on_message(message: discord.Message):
-    if message.author.bot:
-        return
+    # if message.author.bot:
+    #     return
 
     content = message.content or ""
 
