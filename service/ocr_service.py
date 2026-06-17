@@ -120,10 +120,6 @@ def _get_ai_fallback_model() -> str:
     )
 
 
-def _get_image_detail() -> str:
-    return os.getenv("OPEN_AI_OCR_DETAIL") or "low"
-
-
 def _get_cache_ttl_seconds() -> int:
     raw = os.getenv("CHOOSE_OCR_CACHE_TTL_SECONDS")
     if raw and raw.isdigit():
@@ -151,22 +147,20 @@ def extract_text_from_pil(image: Image.Image) -> str:
         model=_get_model(),
         input=[
             {
-                "role": "system",
+                "role": "user",
                 "content": [
                     {
                         "type": "input_text",
-                        "text": "OCR this image. Return visible text only, preserving line breaks. No explanations.",
-                    }
-                ],
-            },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "input_text", "text": "Read the text."},
+                        "text": """
+                        OCR this image.
+                        Return visible text only, preserving line breaks.
+                        No explanations.
+                        """,
+                    },
                     {
                         "type": "input_image",
                         "image_url": _image_to_data_url(image),
-                        "detail": _get_image_detail(),
+                        "detail": "high",
                     },
                 ],
             },
@@ -174,7 +168,10 @@ def extract_text_from_pil(image: Image.Image) -> str:
         max_output_tokens=400,
     )
     text = (response.output_text or "").strip()
-    logger.info(f"[choose-ocr] OpenAI OCR text_len={len(text)}")
+    logger.info(
+        f"[choose-ocr] OpenAI OCR text_len={len(text)} "
+        f"preview={_preview_options(text)}"
+        )
     return text
 
 
@@ -261,11 +258,11 @@ def _looks_messy(text: str, options: List[str]) -> bool:
     return symbol_count >= 3 or len(_prepare_lines(text)) >= 2
 
 
-def should_use_ai_fallback(text: str, options: List[str], force_ai: bool = False) -> bool:
+def should_use_ai_fallback(text: str, options: List[str], force_ai: bool) -> bool:
     if force_ai:
         return bool(text.strip())
-    if len(options) >= 2:
-        return False
+    if len(options) < 2:
+        return True
     return _looks_messy(text, options)
 
 
@@ -279,7 +276,16 @@ def extract_options_with_ai_fallback(text: str) -> List[str]:
                     {
                         "type": "input_text",
                         "text": (
-                            "從以下 OCR 文字抽出候選選項，每行一個，只輸出選項，不要解釋。\n\n"
+                            """
+                            The following text was extracted from an image.
+                            Extract only entries that a user would reasonably select or choose.
+                            Ignore descriptions, ingredients, prices, category headings, section titles, notes, metadata, and other supplementary information.
+                            If unsure whether a line is a selectable entry or supplementary information, prefer excluding it.
+                            Return one entry per line.
+                            Do not add numbering, bullet points, explanations, headings, or any text not present in the OCR result.
+                            Output only the extracted entries.
+                            \n\n
+                            """
                             f"{_preview_text(text, limit=3000)}"
                         ),
                     }
@@ -333,7 +339,7 @@ def _put_cached_result(key: str, result: OcrResult) -> None:
 def extract_options_result_from_bytes(
     data: bytes,
     suffix: str = ".png",
-    force_ai_fallback: bool = False,
+    force_ai_fallback: bool = True,
 ) -> OcrResult:
     image_hash = _sha256(data)
     key = _cache_key(image_hash)
@@ -366,7 +372,7 @@ def extract_options_result_from_bytes(
     result = OcrResult(ocr_text=text, options=options, source=source, cache_hit=False)
     _put_cached_result(key, result)
     logger.info(
-        f"[choose-ocr] cached hash={image_hash[:12]} source={source} "
+        f"[choose-parser] cached hash={image_hash[:12]} source={source} "
         f"options={len(options)} preview={_preview_options(options)}"
     )
     return result
