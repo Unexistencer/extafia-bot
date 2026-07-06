@@ -1,15 +1,16 @@
 services:
   extafia:
-    image: ghcr.io/unexistencer/extafia-bot:latest
-    container_name: extafia
+    image: ghcr.io/unexistencer/extafia-bot:${IMAGE_TAG:-latest}
+    pull_policy: always
 
+    container_name: extafia
     restart: unless-stopped
 
     env_file:
       - .env
 
     environment:
-      TZ: Asia/Tokyo
+      TZ: ${TZ}
 
     volumes:
       - ./logs:/app/logs
