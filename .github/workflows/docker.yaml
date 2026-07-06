@@ -31,4 +31,20 @@ jobs:
           docker push ghcr.io/unexistencer/extafia-bot:latest
           docker push ghcr.io/unexistencer/extafia-bot:${{ github.sha }}
 
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
 
+    steps:
+      - name: Deploy to GCP VM
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+
+          script: |
+            cd ${{ secrets.VM_WORKDIR }}
+
+            docker compose pull
+            docker compose up -d
