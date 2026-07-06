@@ -1,5 +1,6 @@
 ## Changelog
 
+- 2026.07.06 Migrate deployment to GHCR and Docker Compose
 - 2026.06.16 Unblocked command by other bots, edited .gitignore
 - 2026.04.28 Optimize `/choose` OCR flow with parser-first extraction, in-memory image-result cache, AI fallback gate, shorter prompts, cheaper default model, and local `random.choice` selection.
 - 2026.04.02 Release.
@@ -162,9 +163,12 @@ extafia/
 Setup your bot enivornment at extafia/.
 ```bash
 DISCORD_TOKEN=your_discord_bot_token
-PROJECT_ID=your_gcp_project_id
+GOOGLE_CLOUD_PROJECT=your_gcp_project_id
 OPEN_AI_API_KEY=your_openai_api_key
 OPEN_AI_MODEL=gpt-4o
+TURTLE_AI_API_KEY=your_turtle_ai_api_key
+TURTLE_AI_MODEL=gpt-4o
+TZ=Asia/Tokyo
 ```
 
 2. Prepare ADC
@@ -191,10 +195,34 @@ Using `docker_tools.sh`
 
 ## GCP Deployment Guide
 
-1. Push the Docker image to Artifact Registry.
-2. Deploy to Cloud Run or Compute Engine (VM).
-3. Use Cloud Scheduler to ping the bot periodically (keep it alive).
-4. Optionally, manage backend requests through API Gateway.
+Docker images are built by GitHub Actions and pushed to GitHub Container Registry (GHCR):
+
+```bash
+ghcr.io/unexistencer/extafia-bot:latest
+ghcr.io/unexistencer/extafia-bot:<commit-sha>
+```
+
+### VM Deployment with Docker Compose
+
+1. Prepare `.env` on the VM.
+2. Login to GHCR if the package is private:
+```bash
+echo YOUR_GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+```
+3. Pull and start the bot:
+```bash
+docker compose pull
+docker compose up -d
+```
+4. Update the running bot:
+```bash
+docker compose pull
+docker compose up -d
+```
+
+The compose file uses `ghcr.io/unexistencer/extafia-bot:${IMAGE_TAG:-latest}`. Set `IMAGE_TAG` in `.env` if you want to pin a specific commit SHA instead of `latest`.
+
+For Compute Engine, attach a service account with Firestore access. If using a local service-account JSON instead, mount it into the container and set `GOOGLE_APPLICATION_CREDENTIALS`.
 
 ## Security Notes
 
