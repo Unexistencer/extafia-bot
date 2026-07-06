@@ -26,9 +26,9 @@ jobs:
       - name: Build Docker Image
         run: docker build -t ghcr.io/unexistencer/extafia-bot:latest -t ghcr.io/unexistencer/extafia-bot:${{ github.sha }} .
 
-      # - name: Push Docker Image
-      #   run: |
-      #     docker push ghcr.io/unexistencer/extafia-bot:latest
-      #     docker push ghcr.io/unexistencer/extafia-bot:${{ github.sha }}
+      - name: Push Docker Image
+        run: |
+          docker push ghcr.io/unexistencer/extafia-bot:latest
+          docker push ghcr.io/unexistencer/extafia-bot:${{ github.sha }}
 
 
