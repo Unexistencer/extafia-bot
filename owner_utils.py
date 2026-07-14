@@ -1,8 +1,14 @@
+import os
+
 from discord.ext import commands
+import dotenv
 from google.cloud import firestore
 import asyncio
+    
 
-db = firestore.Client()
+dotenv.load_dotenv()
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
+db = firestore.Client(project=GOOGLE_CLOUD_PROJECT)
 
 BOT_OWNER_ID = 395223486752358400
 

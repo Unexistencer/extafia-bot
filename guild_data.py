@@ -1,9 +1,12 @@
 import asyncio
 from typing import Dict, Any, Optional, List
-
+import dotenv
+import os
 from google.cloud import firestore
 
-db = firestore.Client()
+dotenv.load_dotenv()
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
+db = firestore.Client(project=GOOGLE_CLOUD_PROJECT)
 
 GUILD_CACHE: Dict[int, Dict[str, Any]] = {}
 
