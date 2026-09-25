@@ -39,8 +39,9 @@ DEFAULT_TRACKING_NOISE = 100
 DEFAULT_LOFI = 100
 MIN_LOFI = 1
 MAX_LOFI = 100
-MIN_LOFI_SCALE = 0.46
+MIN_LOFI_SCALE = 0.30
 MAX_LOFI_SCALE = 0.998
+LOFI_VERTICAL_SCALE_FACTOR = 0.25
 
 GIF_FRAME_LIMIT = 120
 ADAPTIVE_PALETTE = Image.ADAPTIVE if hasattr(Image, "ADAPTIVE") else Image.Palette.ADAPTIVE
@@ -81,10 +82,11 @@ def _lofi_scale(lofi: int) -> float:
 
 def _apply_lofi_softening(image: Image.Image, lofi: int) -> Image.Image:
     width, height = image.size
-    scale = _lofi_scale(lofi)
+    scale_x = _lofi_scale(lofi)
+    scale_y = 1.0 - (1.0 - scale_x) * LOFI_VERTICAL_SCALE_FACTOR
     reduced = (
-        max(1, int(width * scale)),
-        max(1, int(height * scale)),
+        max(1, int(width * scale_x)),
+        max(1, int(height * scale_y)),
     )
     if reduced == image.size:
         return image
