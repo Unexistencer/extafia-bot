@@ -1,6 +1,10 @@
+import os
+import dotenv
 from google.cloud import firestore
 
-db = firestore.Client()
+dotenv.load_dotenv()
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
+db = firestore.Client(project=GOOGLE_CLOUD_PROJECT)
 
 
 def _fetch_vc_logs(guild_id, *, user_id=None):

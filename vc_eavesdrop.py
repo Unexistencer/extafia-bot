@@ -1,8 +1,11 @@
+import dotenv
 from google.cloud import firestore
 import time
 import os
 
-db = firestore.Client()
+dotenv.load_dotenv()
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
+db = firestore.Client(project=GOOGLE_CLOUD_PROJECT)
 join_vc_dict = {}  # {user_id: JoinVC}
 
 class JoinVC:

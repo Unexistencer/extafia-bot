@@ -1,135 +1,17 @@
-## Changelog
-
-- 2026.06.17 Updated OCR defaults: OCR detail is now set to High, and AI Parser is enabled by default.
-- 2026.06.16 Unblocked command by other bots, edited .gitignore.
-- 2026.04.28 Optimize `/choose` OCR flow with parser-first extraction, in-memory image-result cache, AI fallback gate, shorter prompts, cheaper default model, and local `random.choice` selection.
-- 2026.04.02 Release.
-
-
-<br></br>
-
 # Extafia Discord Bot
 
-**Extafia** is a feature-rich Discord bot built around a competitive game system with in-game currency, enchantments, and multiplayer arena battles.  
-It runs on **Python 3.12 + discord.py**, fully integrated with **Google Cloud Platform (GCP)** services.
+**Extafia** is a multilingual Discord bot featuring multiplayer arena battles, in-game currency and enchantments, image-based choice selection, and VHS effects for images and GIFs.
 
-<br></br>
-# Features
+It runs on **Python 3.12 + discord.py**, uses **Firestore** for persistence, and includes a GitHub Actions workflow for deployment to a **GCP VM** with Docker Compose.
 
-| Command | Description |
-|----------|--------------|
-| `/h` | Get help |
-| `/lang` | Switches interface language (English / Japanese / Traditional Chinese) |
-| `/choose(.choose)` | Randomly selects from given options (1% chance to generate a special phrase) |
-| `/arena` | Dice-based multiplayer arena. Users bet currency; results are affected by enchantments |
-| `/enchant` | Roll new enchantments that influence arena outcomes or rewards |
-| `/vaal` | Corrupt your cock to get further strength |
-| `/stat` | Displays user info: language, currency, enchantments, and developer privileges |
-| `.vhs` | Apply a VHS-style filter to an attached image or GIF, replied media, or recent media, with optional tuning |
----
-<br>
+## Technical Highlights
 
-## Choose
-
-Choose one from given choices.
-
-".choose" is also support.
-
-Usage examples:
-```bash
-/choose 打機 回家
-.choose 拉麵 拉麵 拉麵
-```
-### (Beta) OCR choose
-
-Extafia can also pick a choice from uploaded/replied image.
-
-If type ".choose" without any choices or attachments, the latest iamge in text channel will be targeted.
-
-![image](image/choose_eg1.png)
-
-
-## VHS Command
-
-Add VHS effect to targeted images, even .gif.
-
-Usage examples:
-```bash
-.vhs
-.vhs 60
-.vhs 60 noise=80 scanline=400 rgb=60
-.vhs noisebar
-.vhs lofi
-.vhs lofi=80
-.vhs 60 noise=80 scanline=400 rgb=60 noisebar lofi
-.vhs 60 noise=80 scanline=400 rgb=60 noisebar lofi=90
-```
-
-Parameters:
-- `strength`: overall VHS effect strength, range `1-100`, default `35`
-- `noise`: static/noise intensity, range `0-100`, default `50`
-- `scanline`: scanline intensity, range `0-1000`, default `800`
-- `rgb`: RGB channel shift intensity, range `0-200`, default `120`
-- `noisebar`: optional tracking-noise bar effect for stronger glitch on the output
-- `lofi`: optional low-fidelity strength, range `1-100`, default `100`
-
-Notes:
-- The first bare number is treated as `strength`
-- `scan=120` also works as a shorter alias for `scanline=120`
-- Add `noisebar` to enable the extra moving tracking-noise bar effect
-- Add `lofi` to use the default low-fidelity strength, or `lofi=80` to tune it manually
-- Values above the recommended range are clamped internally per option
-- Animated GIFs are processed frame-by-frame and returned as GIFs
-
-## Cock Arena & Enchantment
-
-Have a cock battle with your friends! (Single mode WIP)
-
-How to play: type "/arena" and you will get it
-
-Player at the last place in arena have to pay currency `Shing Coin`<img src="image/ShingCoin1.png" width="1.5%"> to winner. Bet amount will be random.
-
----
-
-### Enchantment
-
-Enchant and dominate the arena!
-
-Usage:
-
-- ```/enchant (roll)```: spend 10<img src="image/ShingCoin2.png" width="1.5%"> to get new enchantments.
-
-- ```/enchant show```: show your cock enchantment
-
-Notes: 
-- 1 cock contains of maximum 2 prefixes and 2 suffixes.
-- (Skill list will be released soon.)
-
----
-
-### Vaal
-
-Use vaal to corrupt your cock and upgrade enchanted skill.
-
-Usage:
-- ```/vaal```: spend 1<img src="image/ShingCoin1.png" width="1.5%"> to corrupt your cock
-
-Notes:
-- The enhancement effect of Vaal is based on the enchanted skill on your cock.
-- After Vaal, your cock becomes corrupted and cannot be vaaled again until you obtain a new enchantment via ```/enchant```.
-- Vaal can succeed, have no effect, or fail.
-
-## Currency
-
-A currency issued based on the likeness of our great exalted master, `yip10101`.
-
-1<img src="image/ShingCoin1.png" width="1.5%"> is worth 100<img src="image/ShingCoin2.png" width="1.5%">, and 1<img src="image/ShingCoin2.png" width="1.5%"> is worth 100<img src="image/ShingCoin3.png" width="1.5%">.
-
-Special Thanks: @mfasa, @cloo
-
-<br></br>
-
-# Installation
+- Designed and implemented the bot from application logic to cloud deployment and operation.
+- Separated Discord command handling (`cogs/`) from core application logic (`service/`) for maintainability.
+- Uses Firestore for persistent user/game data with an in-memory cache to reduce repeated database access.
+- Implements image-based option extraction using the OpenAI API, including image preprocessing, result caching, and fallback handling.
+- Supports English, Japanese, and written Cantonese through a centralized message resolver and translation dictionaries.
+- Containerized with Docker and deployed to a GCP Compute Engine VM through GitHub Actions and GHCR.
 
 ## System Overview
 
@@ -137,90 +19,141 @@ Special Thanks: @mfasa, @cloo
 - **Framework:** `discord.py`
 - **Database:** Firestore (GCP)
 - **Authentication:** Google Application Default Credentials (ADC)
-- **(WIP)Backend:** Cloud Functions + API Gateway
-- **(WIP)Scheduler:** Cloud Scheduler (for daily events and uptime pings)
+- **Deployment:** GitHub Actions → GHCR → GCP VM (Docker Compose)
 
-<br>
+Firestore stores user and game data, while in-memory caches reduce repeated reads within each bot process. Currency updates currently use separate read and write operations without Firestore transactions, so concurrent updates can conflict. Running multiple instances would require transactional updates and coordination between caches.
+
+## Features
+
+| Command | Description |
+|----------|--------------|
+| `/h` | Display command help |
+| `/lang` | Set the interface language: English, Japanese, or written Cantonese (Traditional Chinese) |
+| `/choose`, `.choose` | Select an option from text input or an image |
+| `/arena` | Start a dice-based multiplayer battle with currency wagers and enchantment modifiers |
+| `/enchant` | Generate enchantments that affect arena outcomes or rewards |
+| `/vaal` | Apply a corruption effect to existing enchantments, with a chance of improvement or failure |
+| `/stat` | Display user language, currency, enchantments, and developer privileges |
+| `.vhs` | Apply a customizable VHS-style filter to an attached image or GIF, media in a replied-to message, or recent media |
+
+See the [Command Guide](docs/commands.md) for usage examples, image effects, arena rules, and currency details.
+
 
 ## Project Structure
 
-```bash
+```text
 extafia/
 ├── service/                # Core logic (arena, enchantment, etc.)
 ├── cogs/                   # Discord command modules
+├── data/message.json       # Translation dictionaries
 ├── constants.py            # Dataclasses, enums, bitfield constants
 ├── user_data.py            # Firestore I/O + in-memory cache
 ├── msg_utils.py            # Multilingual message resolver
 ├── docker_tools.sh         # Docker build/run helper script
 ├── Dockerfile
+├── compose.yaml            # VM deployment using GHCR images
 └── requirements.txt
 ```
-<br>
-
 ## Environment Setup
 
-1. Create `.env`<br>
-Setup your bot enivornment at extafia/.
+### 1. Configure Environment Variables
+
+Create `.env` in the repository root. The following example uses the OCR implementation's default model:
 ```bash
 DISCORD_TOKEN=your_discord_bot_token
-PROJECT_ID=your_gcp_project_id
+GOOGLE_CLOUD_PROJECT=your_gcp_project_id
 OPEN_AI_API_KEY=your_openai_api_key
-OPEN_AI_MODEL=gpt-4o
+OPEN_AI_MODEL=gpt-4o-mini
+TURTLE_AI_API_KEY=your_turtle_ai_api_key
+TURTLE_AI_MODEL=gpt-4o
+TZ=Asia/Tokyo
 ```
 
-2. Prepare ADC
+`OPEN_AI_API_KEY` is required for image-based choice selection. `OPEN_AI_MODEL` overrides the default OCR model (`gpt-4o-mini`); `.env.example` currently sets this override to `gpt-4o`. Optional `OPEN_AI_FALLBACK_MODEL` selects the additional text-extraction model and otherwise inherits the OCR model. `CHOOSE_OCR_CACHE_TTL_SECONDS` controls the image-result cache lifetime (default: 1200 seconds; minimum: 60 seconds).
+
+### 2. Configure Application Default Credentials
+
 ```bash
 gcloud auth application-default login
 gcloud config set project your_gcp_project_id
 ```
 
-For Cloud Run / Compute Engine, attach a runtime service account with Firestore access and ADC will be available automatically.
+For the Compute Engine deployment, attach a runtime service account with Firestore access.
 
-3. Install Dependencies<br>
-Using `docker_tools.sh`
+### 3. Local Setup with Docker
+
+From the repository root, use Bash to open the helper menu and select option `2` to build and run the container. This option also prunes unused Docker resources and replaces the existing `extafia` container.
 ```bash
-# Build and run the container
-./docker_tools.sh
+# Local development: explicitly mount the ADC file created by gcloud
+ADC_PATH="$HOME/.config/gcloud/application_default_credentials.json" bash ./docker_tools.sh
 ```
-> Default local ADC path:<br>
-> `~/.config/gcloud/application_default_credentials.json`
-> You can override it with:
+> The helper does not choose an ADC path automatically. Without a valid `ADC_PATH`, it relies on runtime default credentials (such as a Compute Engine service account):
 > ```bash
-> ADC_PATH=/path/to/application_default_credentials.json ./docker_tools.sh
+> bash ./docker_tools.sh
 > ```
+> If your local ADC file is elsewhere, set `ADC_PATH` to its actual path.
 
 
 ## GCP Deployment Guide
 
-1. Push the Docker image to Artifact Registry.
-2. Deploy to Cloud Run or Compute Engine (VM).
-3. Use Cloud Scheduler to ping the bot periodically (keep it alive).
-4. Optionally, manage backend requests through API Gateway.
+On pushes to `main`, GitHub Actions builds Docker images, pushes them to GitHub Container Registry (GHCR), and deploys to a GCP VM over SSH by running `docker compose pull` and `docker compose up -d`. The deployment job requires the repository secrets `VM_HOST`, `VM_USER`, `VM_SSH_KEY`, and `VM_WORKDIR`; the VM working directory must already contain `compose.yaml` and `.env`.
 
-## Security Notes
+Published image tags:
 
-- When running multiple instances, use Firestore transactions to avoid race conditions.
-- Actually newbie in security, welcome any suggestions about data saving, API, etc.
+```bash
+ghcr.io/unexistencer/extafia-bot:latest
+ghcr.io/unexistencer/extafia-bot:<commit-sha>
+```
+
+### VM Deployment with Docker Compose
+
+1. Prepare `.env` on the VM.
+2. Log in to GHCR if the package is private:
+```bash
+echo YOUR_GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+```
+3. Pull and start the bot:
+```bash
+docker compose pull
+docker compose up -d
+```
+4. Update the running bot:
+```bash
+docker compose pull
+docker compose up -d
+```
+
+The compose file uses `ghcr.io/unexistencer/extafia-bot:${IMAGE_TAG:-latest}`. Set `IMAGE_TAG` in `.env` if you want to pin a specific commit SHA instead of `latest`.
+
+For Compute Engine, attach a service account with Firestore access. If using a local service-account JSON instead, mount it into the container and set `GOOGLE_APPLICATION_CREDENTIALS`.
 
 ## Localization
 
 Supported languages:
+
 - English (en)
 - Japanese (jp)
 - Written Cantonese (zh)
 
-All texts are handled dynamically via `msg_utils.py` and translation dictionaries in `lang_data/`.  
+Localized messages are resolved via `msg_utils.py` using translation dictionaries in `data/message.json`.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
 
 ## Contact / Support
+
 Developer: 黒矢  
 Discord: @ltkaz
 
-For GCP deployment details, refer to:
-- [Google Cloud Run Docs](https://cloud.google.com/run/docs)
-- [Cloud Scheduler Docs](https://cloud.google.com/scheduler/docs)
+For bug reports or feature requests, open an issue in this repository.
 
-For bugs or feature requests, please open an Issue in this repository.
+## Acknowledgments
+
+Special thanks to @mfasa and @cloo for designing the Shing Coin artwork.
+
+<img src="image/ShingCoin1.png" width="7%"><img src="image/ShingCoin2.png" width="7%"><img src="image/ShingCoin3.png" width="7%">
