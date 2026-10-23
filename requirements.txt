@@ -14,3 +14,6 @@ openai
 
 # JSON
 requests
+
+# eMudhra incident: keep the application CA bundle above the fixed release.
+certifi>=2026.10.19

@@ -24,7 +24,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker Image
-        run: docker build -t ghcr.io/unexistencer/extafia-bot:latest -t ghcr.io/unexistencer/extafia-bot:${{ github.sha }} .
+        run: docker build --pull --no-cache -t ghcr.io/unexistencer/extafia-bot:latest -t ghcr.io/unexistencer/extafia-bot:${{ github.sha }} .
 
       - name: Push Docker Image
         run: |
