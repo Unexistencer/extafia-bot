@@ -64,12 +64,15 @@ DISCORD_TOKEN=your_discord_bot_token
 GOOGLE_CLOUD_PROJECT=your_gcp_project_id
 OPEN_AI_API_KEY=your_openai_api_key
 OPEN_AI_MODEL=gpt-4o-mini
+CHOOSE_AI_PARSER_ENABLED=true
 TURTLE_AI_API_KEY=your_turtle_ai_api_key
 TURTLE_AI_MODEL=gpt-4o
 TZ=Asia/Tokyo
 ```
 
-`OPEN_AI_API_KEY` is required for image-based choice selection. `OPEN_AI_MODEL` overrides the default OCR model (`gpt-4o-mini`); `.env.example` currently sets this override to `gpt-4o`. Optional `OPEN_AI_FALLBACK_MODEL` selects the additional text-extraction model and otherwise inherits the OCR model. `CHOOSE_OCR_CACHE_TTL_SECONDS` controls the image-result cache lifetime (default: 1200 seconds; minimum: 60 seconds).
+`OPEN_AI_API_KEY` is required for image-based choice selection. `OPEN_AI_MODEL` overrides the default OCR model (`gpt-4o-mini`); `.env.example` currently sets this override to `gpt-4o`. Optional `OPEN_AI_FALLBACK_MODEL` selects the AI option-extraction model and otherwise inherits the OCR model. `CHOOSE_OCR_CACHE_TTL_SECONDS` controls the image-result cache lifetime (default: 1200 seconds; minimum: 60 seconds).
+
+Image choices use Vision OCR followed by AI option extraction by default. Set `CHOOSE_AI_PARSER_ENABLED=false` to use only the rule parser and prevent the second OpenAI API call; OCR still uses OpenAI. Values `true` and `false` are case-insensitive and allow surrounding whitespace. An unset variable defaults to `true`; invalid values (including empty values) log a warning and disable AI parsing. AI failure or an empty normalized response falls back to rule parsing. Cached results are isolated by effective parser mode and model configuration. The legacy Python argument `force_ai_fallback=False` also disables AI parsing for that call; `True` cannot override the environment opt-out.
 
 ### 2. Configure Application Default Credentials
 

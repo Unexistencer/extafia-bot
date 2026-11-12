@@ -16,9 +16,8 @@ MAX_OPTIONS = 30
 DEFAULT_OCR_MODEL = "gpt-4o-mini"
 DEFAULT_AI_FALLBACK_MODEL = "gpt-4o-mini"
 DEFAULT_CACHE_TTL_SECONDS = 20 * 60
-MIN_AI_FALLBACK_TEXT_LENGTH = 8
 OCR_ENGINE_VERSION = "openai-vision-v2"
-PARSER_VERSION = "choose-parser-v2"
+PARSER_VERSION = "choose-parser-v3"
 
 _CJK = (
     r"\u4e00-\u9fff"  # CJK Unified Ideographs
@@ -248,22 +247,21 @@ def parse_options_from_text(text: str) -> List[str]:
     return options
 
 
-def _looks_messy(text: str, options: List[str]) -> bool:
-    if len(options) >= 2:
-        return False
-    cleaned_len = len(_normalize_spaces(text))
-    if cleaned_len < MIN_AI_FALLBACK_TEXT_LENGTH:
-        return False
-    symbol_count = sum(1 for ch in text if not ch.isalnum() and not ch.isspace())
-    return symbol_count >= 3 or len(_prepare_lines(text)) >= 2
+def _get_ai_parser_enabled() -> bool:
+    """Accept true/false (case-insensitive); invalid values disable AI."""
+    raw = os.getenv("CHOOSE_AI_PARSER_ENABLED")
+    if raw is None:
+        return True
+    value = raw.strip().lower()
+    if value in {"true", "false"}:
+        return value == "true"
+    logger.warning("[choose-parser] Invalid CHOOSE_AI_PARSER_ENABLED; using false")
+    return False
 
 
 def should_use_ai_fallback(text: str, options: List[str], force_ai: bool) -> bool:
-    if force_ai:
-        return bool(text.strip())
-    if len(options) < 2:
-        return True
-    return _looks_messy(text, options)
+    """Compatibility helper: force_ai=False opts out; option count is ignored."""
+    return _get_ai_parser_enabled() and force_ai and bool(text.strip())
 
 
 def extract_options_with_ai_fallback(text: str) -> List[str]:
@@ -295,7 +293,7 @@ def extract_options_with_ai_fallback(text: str) -> List[str]:
         max_output_tokens=250,
     )
     cleaned = (response.output_text or "").strip()
-    logger.info(f"[choose-ocr] AI fallback text_len={len(cleaned)}")
+    logger.info(f"[choose-ocr] AI parser text_len={len(cleaned)}")
     return parse_options_from_text(cleaned)
 
 
@@ -303,8 +301,12 @@ def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _cache_key(image_hash: str) -> str:
-    return f"{image_hash}:{OCR_ENGINE_VERSION}:{PARSER_VERSION}"
+def _cache_key(image_hash: str, ai_enabled: bool | None = None) -> str:
+    if ai_enabled is None:
+        ai_enabled = _get_ai_parser_enabled()
+    config = repr((_get_model(), ai_enabled, _get_ai_fallback_model() if ai_enabled else None, MAX_OPTIONS))
+    config_hash = hashlib.sha256(config.encode("utf-8")).hexdigest()
+    return f"{image_hash}:{OCR_ENGINE_VERSION}:{PARSER_VERSION}:{config_hash}"
 
 
 def _get_cached_result(key: str) -> OcrResult | None:
@@ -341,13 +343,20 @@ def extract_options_result_from_bytes(
     suffix: str = ".png",
     force_ai_fallback: bool = True,
 ) -> OcrResult:
+    """OCR then AI parsing by default; legacy force_ai_fallback=False opts out.
+
+    CHOOSE_AI_PARSER_ENABLED=false always disables the AI parser.
+    """
+    ai_enabled = _get_ai_parser_enabled() and force_ai_fallback
     image_hash = _sha256(data)
-    key = _cache_key(image_hash)
+    key = _cache_key(image_hash, ai_enabled)
     cached = _get_cached_result(key)
     if cached is not None:
         logger.info(
             f"[choose-ocr] cache hit hash={image_hash[:12]} "
-            f"source={cached.source} options={len(cached.options)}"
+            f"ai_enabled={ai_enabled} ai_attempted=False "
+            f"source={cached.source} rule_fallback={cached.source == 'rule_parser_fallback'} "
+            f"options={len(cached.options)}"
         )
         return cached
 
@@ -355,19 +364,24 @@ def extract_options_result_from_bytes(
     with Image.open(BytesIO(data)) as image:
         text = extract_text_from_pil(image)
 
-    options = parse_options_from_text(text)
-    source = "parser"
-    use_ai = should_use_ai_fallback(text, options, force_ai=force_ai_fallback)
-    logger.info(
-        f"[choose-ocr] parser text_len={len(text)} options={len(options)} "
-        f"use_ai_fallback={use_ai}"
-    )
+    options = []
+    source = "rule_parser"
+    ai_attempted = ai_enabled and bool(text.strip())
+    if ai_attempted:
+        try:
+            options = extract_options_with_ai_fallback(text)
+        except Exception:
+            # Avoid logging exception messages, which may contain request details.
+            logger.warning("[choose-parser] AI parser failed; using rule parser")
+        source = "ai_parser" if options else "rule_parser_fallback"
+    if not options:
+        options = parse_options_from_text(text)
 
-    if use_ai:
-        ai_options = extract_options_with_ai_fallback(text)
-        if ai_options:
-            options = ai_options
-            source = "ai_fallback"
+    logger.info(
+        f"[choose-parser] ai_enabled={ai_enabled} ai_attempted={ai_attempted} "
+        f"source={source} rule_fallback={source == 'rule_parser_fallback'} "
+        f"text_len={len(text)} options={len(options)}"
+    )
 
     result = OcrResult(ocr_text=text, options=options, source=source, cache_hit=False)
     _put_cached_result(key, result)
