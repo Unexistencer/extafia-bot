@@ -5,7 +5,7 @@ import os
 import re
 import time
 from dataclasses import dataclass
-from typing import List
+from typing import Iterator, List
 
 from openai import OpenAI
 from PIL import Image, ImageOps
@@ -13,11 +13,13 @@ from PIL import Image, ImageOps
 from logger import logger
 
 MAX_OPTIONS = 30
-DEFAULT_OCR_MODEL = "gpt-4o-mini"
-DEFAULT_AI_FALLBACK_MODEL = "gpt-4o-mini"
+DEFAULT_OCR_MODEL = "gpt-4o"
+DEFAULT_AI_FALLBACK_MODEL = "gpt-4o"
 DEFAULT_CACHE_TTL_SECONDS = 20 * 60
-OCR_ENGINE_VERSION = "openai-vision-v2"
+OCR_ENGINE_VERSION = "openai-vision-v3"
 PARSER_VERSION = "choose-parser-v3"
+OCR_IMAGE_DETAIL = "high"
+MAX_OCR_TILES = 9
 
 _CJK = (
     r"\u4e00-\u9fff"  # CJK Unified Ideographs
@@ -35,6 +37,28 @@ _SPLIT_RE = re.compile(r"[,、，/|]")
 _STANDALONE_ORDINAL_RE = re.compile(r"^(?:\d{1,3}|[A-Za-z])$")
 _OPENAI_CLIENT: OpenAI | None = None
 _OCR_CACHE: dict[str, "OcrCacheEntry"] = {}
+
+
+@dataclass(frozen=True)
+class OcrPreprocessing:
+    tiling_enabled: bool = False
+    rows: int = 2
+    cols: int = 2
+    overlap: float = 0.15
+    downscale_enabled: bool = True
+    max_image_size: int = 1800
+
+    def __post_init__(self) -> None:
+        if min(self.rows, self.cols) < 1 or self.rows * self.cols > MAX_OCR_TILES:
+            raise ValueError(f"OCR grid must contain 1 to {MAX_OCR_TILES} tiles")
+        if not 0 <= self.overlap < 1:
+            raise ValueError("OCR tile overlap must be in [0, 1)")
+        if self.max_image_size < 1:
+            raise ValueError("OCR maximum image size must be positive")
+
+
+class IncompleteTiledOcrError(RuntimeError):
+    """At least one tile could not be transcribed."""
 
 
 @dataclass(frozen=True)
@@ -61,26 +85,12 @@ class OcrCacheEntry:
         )
 
 
-def _preview_text(text: str, limit: int = 500) -> str:
-    text = (text or "").replace("\r", "\\r").replace("\n", "\\n")
-    if len(text) <= limit:
-        return text
-    return text[:limit] + "...(truncated)"
-
-
-def _preview_options(options: List[str], limit: int = 8) -> str:
-    shown = options[:limit]
-    suffix = "" if len(options) <= limit else f", ...(+{len(options) - limit})"
-    return f"{shown}{suffix}"
-
-
 def _downscale(image: Image.Image, max_side: int = 1800) -> Image.Image:
     w, h = image.size
     m = max(w, h)
     if m <= max_side:
         return image
-    scale = max_side / m
-    return image.resize((int(w * scale), int(h * scale)))
+    return image.resize((max(1, w * max_side // m), max(1, h * max_side // m)))
 
 
 def _fix_cjk_spacing(text: str) -> str:
@@ -94,10 +104,61 @@ def _normalize_spaces(text: str) -> str:
     return _fix_cjk_spacing(text).strip()
 
 
-def preprocess_image(image: Image.Image) -> Image.Image:
+def _orient_rgb(image: Image.Image) -> Image.Image:
     image = ImageOps.exif_transpose(image)
-    image = _downscale(image)
-    return image.convert("RGB")
+    return image if image.mode == "RGB" else image.convert("RGB")
+
+
+def _resize_for_ocr(image: Image.Image, config: OcrPreprocessing) -> Image.Image:
+    return _downscale(image, config.max_image_size) if config.downscale_enabled else image
+
+
+def preprocess_image(image: Image.Image) -> Image.Image:
+    """Prepare a single full image for OCR."""
+    return _resize_for_ocr(_orient_rgb(image), _get_preprocessing())
+
+
+def iter_image_tiles(
+    image: Image.Image, rows: int = 2, cols: int = 2, overlap: float = 0.15
+) -> Iterator[tuple[tuple[int, int, int, int], Image.Image]]:
+    """Yield (crop box, tile) in row order, extending both sides of internal seams."""
+    OcrPreprocessing(rows=rows, cols=cols, overlap=overlap)
+    width, height = image.size
+    if cols > width or rows > height:
+        raise ValueError("OCR grid has more rows or columns than the image has pixels")
+    extend_x = round(overlap * width / cols)
+    extend_y = round(overlap * height / rows)
+    for row in range(rows):
+        top = max(0, row * height // rows - extend_y) if row else 0
+        bottom = min(height, (row + 1) * height // rows + extend_y)
+        for col in range(cols):
+            left = max(0, col * width // cols - extend_x) if col else 0
+            right = min(width, (col + 1) * width // cols + extend_x)
+            box = (left, top, right, bottom)
+            yield box, image.crop(box)
+
+
+def _get_bool(name: str, default: bool, *, invalid: bool | None = None) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    value = raw.strip().lower()
+    if value in {"true", "false"}:
+        return value == "true"
+    fallback = default if invalid is None else invalid
+    logger.warning("[choose-config] Invalid %s; using %s", name, str(fallback).lower())
+    return fallback
+
+
+def _get_preprocessing() -> OcrPreprocessing:
+    return OcrPreprocessing(
+        tiling_enabled=_get_bool("CHOOSE_OCR_TILING_ENABLED", False),
+        rows=int(os.getenv("CHOOSE_OCR_TILE_ROWS", "2")),
+        cols=int(os.getenv("CHOOSE_OCR_TILE_COLS", "2")),
+        overlap=float(os.getenv("CHOOSE_OCR_TILE_OVERLAP", "0.15")),
+        downscale_enabled=_get_bool("CHOOSE_OCR_DOWNSCALE_ENABLED", True),
+        max_image_size=int(os.getenv("CHOOSE_OCR_MAX_IMAGE_SIZE", "1800")),
+    )
 
 
 def _get_api_key() -> str:
@@ -140,8 +201,14 @@ def _image_to_data_url(image: Image.Image) -> str:
     return f"data:image/png;base64,{payload}"
 
 
-def extract_text_from_pil(image: Image.Image) -> str:
-    image = preprocess_image(image)
+def _log_usage(stage: str, response, request: str = "") -> None:
+    usage = getattr(response, "usage", None)
+    if usage is not None:
+        logger.info("[%s] %s input_tokens=%s output_tokens=%s total_tokens=%s",
+                    stage, request, usage.input_tokens, usage.output_tokens, usage.total_tokens)
+
+
+def _request_ocr(image: Image.Image, request: str, *, tiled: bool) -> str:
     response = _get_client().responses.create(
         model=_get_model(),
         input=[
@@ -159,19 +226,67 @@ def extract_text_from_pil(image: Image.Image) -> str:
                     {
                         "type": "input_image",
                         "image_url": _image_to_data_url(image),
-                        "detail": "high",
+                        "detail": OCR_IMAGE_DETAIL,
                     },
                 ],
             },
         ],
-        max_output_tokens=400,
+        max_output_tokens=2048,
     )
-    text = (response.output_text or "").strip()
-    logger.info(
-        f"[choose-ocr] OpenAI OCR text_len={len(text)} "
-        f"preview={_preview_options(text)}"
-        )
+    status = getattr(response, "status", None)
+    details = getattr(response, "incomplete_details", None)
+    text = response.output_text or ""
+    logger.debug("[choose-ocr] %s status=%s incomplete_reason=%s empty=%s raw_output:\n%s",
+                 request, status, getattr(details, "reason", None), not text.strip(), text)
+    _log_usage("choose-ocr", response, request)
+    if tiled and status not in (None, "completed"):
+        raise IncompleteTiledOcrError("Vision response did not complete")
     return text
+
+
+def extract_text_from_pil(image: Image.Image, config: OcrPreprocessing | None = None) -> str:
+    config = config if config is not None else _get_preprocessing()
+    started = time.perf_counter()
+    image = _orient_rgb(image)
+    total = config.rows * config.cols if config.tiling_enabled else 1
+    logger.info("[choose-ocr] original_size=%s config=%s tiles=%d", image.size, config, total)
+    tiles = (
+        iter_image_tiles(image, config.rows, config.cols, config.overlap)
+        if config.tiling_enabled else [((0, 0, *image.size), image)]
+    )
+    outputs = []
+    failed = 0
+    empty = 0
+    try:
+        for index, (box, tile) in enumerate(tiles, start=1):
+            request = f"tile={index}/{total}"
+            processed = _resize_for_ocr(tile, config)
+            logger.debug("[choose-ocr] %s crop_box=%s original_size=%s processed_size=%s downscaled=%s",
+                         request, box, tile.size, processed.size, processed is not tile)
+            request_started = time.perf_counter()
+            try:
+                text = _request_ocr(processed, request, tiled=config.tiling_enabled)
+            except Exception as exc:
+                failed += 1
+                logger.warning("[choose-ocr] %s failed error_type=%s http_status=%s",
+                               request, type(exc).__name__, getattr(exc, "status_code", None))
+                if config.tiling_enabled:
+                    raise IncompleteTiledOcrError(f"Tiled OCR incomplete at {request}") from exc
+                raise
+            finally:
+                logger.debug("[choose-ocr] %s duration_ms=%.0f",
+                             request, (time.perf_counter() - request_started) * 1000)
+            outputs.append(text)
+            empty += not text.strip()
+    finally:
+        logger.info("[choose-ocr] tiles=%d succeeded=%d empty=%d failed=%d unattempted=%d duration_ms=%.0f",
+                    total, len(outputs), empty, failed, total - len(outputs) - failed,
+                    (time.perf_counter() - started) * 1000)
+    if not config.tiling_enabled:
+        return outputs[0].strip()
+    merged = "\n\n".join(outputs)
+    logger.debug("[choose-ocr] merged_text_len=%d merged_output:\n%s", len(merged), merged)
+    return merged
 
 
 def _is_standalone_ordinal(line: str) -> bool:
@@ -249,14 +364,7 @@ def parse_options_from_text(text: str) -> List[str]:
 
 def _get_ai_parser_enabled() -> bool:
     """Accept true/false (case-insensitive); invalid values disable AI."""
-    raw = os.getenv("CHOOSE_AI_PARSER_ENABLED")
-    if raw is None:
-        return True
-    value = raw.strip().lower()
-    if value in {"true", "false"}:
-        return value == "true"
-    logger.warning("[choose-parser] Invalid CHOOSE_AI_PARSER_ENABLED; using false")
-    return False
+    return _get_bool("CHOOSE_AI_PARSER_ENABLED", True, invalid=False)
 
 
 def should_use_ai_fallback(text: str, options: List[str], force_ai: bool) -> bool:
@@ -265,35 +373,53 @@ def should_use_ai_fallback(text: str, options: List[str], force_ai: bool) -> boo
 
 
 def extract_options_with_ai_fallback(text: str) -> List[str]:
+    prompt = """
+    Extract only entries that a user would reasonably select or choose.
+    Identify the primary selectable entities rather than their categories, attributes, or descriptions.
+    When a specific entity name and its category are both present, prefer the specific entity name.
+
+    For example:
+    - Restaurant name over cuisine type.
+    - Dish name over ingredients.
+    - Product name over product category.
+    - Character name over character class.
+
+    If the category itself is the selectable option, retain it.
+
+    Ignore prices, opening hours, descriptions, notes, metadata, and other supplementary information.
+
+    Preserve the original text exactly.
+    Do not infer, correct, translate, or invent names.
+
+    Return one entry per line.
+    Do not add numbering, bullet points, headings, or explanations.
+
+    Output only the extracted entries.
+    """
     response = _get_client().responses.create(
         model=_get_ai_fallback_model(),
         input=[
             {
+                "role": "system",
+                "content": prompt,
+            },
+            {
                 "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": (
-                            """
-                            The following text was extracted from an image.
-                            Extract only entries that a user would reasonably select or choose.
-                            Ignore descriptions, ingredients, prices, category headings, section titles, notes, metadata, and other supplementary information.
-                            If unsure whether a line is a selectable entry or supplementary information, prefer excluding it.
-                            Return one entry per line.
-                            Do not add numbering, bullet points, explanations, headings, or any text not present in the OCR result.
-                            Output only the extracted entries.
-                            \n\n
-                            """
-                            f"{_preview_text(text, limit=3000)}"
-                        ),
-                    }
-                ],
-            }
+                "content": text,
+            },
         ],
-        max_output_tokens=250,
+        max_output_tokens=1024,
     )
+
     cleaned = (response.output_text or "").strip()
-    logger.info(f"[choose-ocr] AI parser text_len={len(cleaned)}")
+    _log_usage("choose-parser", response)
+
+    logger.info(
+        f"[choose-ocr] AI parser text_len={len(cleaned)}"
+    )
+
+    logger.debug("[choose-parser] raw_output:\n%s", cleaned)
+
     return parse_options_from_text(cleaned)
 
 
@@ -301,10 +427,14 @@ def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _cache_key(image_hash: str, ai_enabled: bool | None = None) -> str:
+def _cache_key(
+    image_hash: str, ai_enabled: bool | None = None, preprocessing: OcrPreprocessing | None = None
+) -> str:
     if ai_enabled is None:
         ai_enabled = _get_ai_parser_enabled()
-    config = repr((_get_model(), ai_enabled, _get_ai_fallback_model() if ai_enabled else None, MAX_OPTIONS))
+    preprocessing = preprocessing if preprocessing is not None else _get_preprocessing()
+    config = repr((preprocessing, _get_model(), OCR_IMAGE_DETAIL, ai_enabled,
+                   _get_ai_fallback_model() if ai_enabled else None, MAX_OPTIONS))
     config_hash = hashlib.sha256(config.encode("utf-8")).hexdigest()
     return f"{image_hash}:{OCR_ENGINE_VERSION}:{PARSER_VERSION}:{config_hash}"
 
@@ -347,23 +477,26 @@ def extract_options_result_from_bytes(
 
     CHOOSE_AI_PARSER_ENABLED=false always disables the AI parser.
     """
+    started = time.perf_counter()
     ai_enabled = _get_ai_parser_enabled() and force_ai_fallback
+    preprocessing = _get_preprocessing()
     image_hash = _sha256(data)
-    key = _cache_key(image_hash, ai_enabled)
+    key = _cache_key(image_hash, ai_enabled, preprocessing)
     cached = _get_cached_result(key)
     if cached is not None:
         logger.info(
             f"[choose-ocr] cache hit hash={image_hash[:12]} "
             f"ai_enabled={ai_enabled} ai_attempted=False "
             f"source={cached.source} rule_fallback={cached.source == 'rule_parser_fallback'} "
-            f"options={len(cached.options)}"
+            f"options={len(cached.options)} config={preprocessing}"
         )
         return cached
 
     logger.info(f"[choose-ocr] cache miss hash={image_hash[:12]} suffix={suffix}")
     with Image.open(BytesIO(data)) as image:
-        text = extract_text_from_pil(image)
+        text = extract_text_from_pil(image, preprocessing)
 
+    parser_started = time.perf_counter()
     options = []
     source = "rule_parser"
     ai_attempted = ai_enabled and bool(text.strip())
@@ -380,14 +513,15 @@ def extract_options_result_from_bytes(
     logger.info(
         f"[choose-parser] ai_enabled={ai_enabled} ai_attempted={ai_attempted} "
         f"source={source} rule_fallback={source == 'rule_parser_fallback'} "
-        f"text_len={len(text)} options={len(options)}"
+        f"text_len={len(text)} options={len(options)} "
+        f"duration_ms={(time.perf_counter() - parser_started) * 1000:.0f}"
     )
 
     result = OcrResult(ocr_text=text, options=options, source=source, cache_hit=False)
     _put_cached_result(key, result)
     logger.info(
-        f"[choose-parser] cached hash={image_hash[:12]} source={source} "
-        f"options={len(options)} preview={_preview_options(options)}"
+        "[choose-ocr] cached hash=%s source=%s options=%d total_duration_ms=%.0f",
+        image_hash[:12], source, len(options), (time.perf_counter() - started) * 1000,
     )
     return result
 
